@@ -1,5 +1,19 @@
 import math, pygame, time, random
 
+"""
+HOW TO PLAY
+
+Action    |  Player_1  |  Player_2 
+__________|____________|___________
+Movement  |  a and d   |  j and l  
+Jump      |  w         |  i        
+Recover   |  s         |  k        
+Punch     |  e         |  u        
+Blades    |  q         |  o        
+Block     |  L_Shift   |  R_Shift  
+"""
+
+
 
 def init(rd):
                                                                                 #Class
@@ -13,6 +27,7 @@ def init(rd):
                 self.h_pos = [0, X//65]
                 self.move = move
                 self.dirn = dirn
+                self.atk_ct = 0
                 self.action = {"relax" : False, "jump" : False, "block" : False, "attack" : False}
                 self.time = {"attack" : float("inf"), "jump" : float("inf")}
                 self.health = 100.0
@@ -35,19 +50,6 @@ def init(rd):
                 elif act == "attack" and self.stamina >= 20:
                     self.action["attack"] = True
                     self.time["attack"] = time.time()
-                    """isnear = abs(self.pos[0]-l_plrs[int(not l_plrs.index(self))].pos[0]) <= int(X/6.5)
-
-                        if isnear and l_plrs[p2].action["jump"] == False:
-                            if l_plrs[p2].action["block"] == True:
-                                mult = (round((round(X/6.5, 2)-abs(self.pos[0]-l_plrs[int(not l_plrs.index(self))].pos[0]))/round(X/6, 2), 2))
-                            elif l_plrs[p2].action["relax"] == True:
-                                mult = (2+round((round(X/6.5, 2)-abs(self.pos[0]-l_plrs[int(not l_plrs.index(self))].pos[0]))/round(X/6, 2), 2))
-                            else:
-                                mult = (1+round((round(X/6.5, 2)-abs(self.pos[0]-l_plrs[int(not l_plrs.index(self))].pos[0]))/round(X/6, 2), 2))
-                            l_plrs[p2].health -= 10*mult
-                            self.stamina -= 15.0
-                        else:
-                            self.stamina -= 7.5"""
 
                 elif act == "l attack" and self.stamina >= 15 and self.disc > 0:
                     self.stamina -= 15
@@ -225,7 +227,7 @@ def render():
                 pygame.draw.rect(SCREEN, white, pygame.Rect(i.pos[0]+i.h_pos[0], i.pos[1]+Y//10, X//50, X//50))
             if i.dirn == "left":
                 pygame.draw.rect(SCREEN, white, pygame.Rect(i.pos[0]-i.h_pos[0], i.pos[1]+Y//10, i.h_pos[0], i.h_pos[1]))
-                pygame.draw.rect(SCREEN, white, pygame.Rect(i.pos[0]+i.h_pos[0], i.pos[1]+Y//10, X//60, X//60))
+                pygame.draw.rect(SCREEN, white, pygame.Rect(i.pos[0]-i.h_pos[0]-X//60, i.pos[1]+Y//10, X//60, X//60))
 
     for i in l_disc:
         pygame.draw.arc(SCREEN, white, pygame.Rect(i.pos[0], i.pos[1], X//50, X//50), math.radians(20)-(20*time.time()), math.pi-math.radians(20)-(20*time.time()), 4)
@@ -248,9 +250,7 @@ if __name__ == "__main__":
         rdr_time = time.time()
         init(rd)
 
-
         while l_plrs[0].health > 0 and l_plrs[1].health > 0:
-
             if rdr_time+(1/30) <= time.time():
 
                 for i in l_plrs:
@@ -270,9 +270,9 @@ if __name__ == "__main__":
                         elif i.move == "right" and i.pos[0] < X-(X//35):
                             i.pos[0] += X//150
                             i.stamina -= 0.25
-                        if i.pos[0]-l_plrs[p2].pos[0] < 0:
+                        if i.pos[0]-l_plrs[p2].pos[0] <= 0 and i.action["attack"] == False:
                             i.dirn = "right"
-                        else:
+                        elif i.pos[0]-l_plrs[p2].pos[0] >= 0 and i.action["attack"] == False:
                             i.dirn = "left"
 
                     if i.action["block"] == True:
@@ -281,7 +281,7 @@ if __name__ == "__main__":
                         else:
                             i.action["block"] = False
                     
-                    if i.action["relax"] == True and i.stamina <= 149.50 and i.health <= 99.9:
+                    if i.action["relax"] == True and i.stamina <= 149.50 and i.health < 100:
                         i.stamina += 0.5
                         i.health += 0.1
 
@@ -294,28 +294,64 @@ if __name__ == "__main__":
                             i.stamina -= 0.125
 
                     if i.action["attack"] == True:
-                        if i.time["attack"]+0.25 > time.time():
-                            i.h_pos[0] += X//50*(time.time()-i.time["attack"])/.25
-                        if i.time["attack"]+0.5 < time.time():
-                            i.h_pos[0] -= X//50*(time.time()-i.time["attack"]-0.5)/.25
-                        if i.time["attack"]+.75 <= time.time():
-                            i.h_pos[0] = 0
-                            i.action["attack"] = False
+                        if i.dirn == "right":
+                            near = abs(i.pos[0]+i.h_pos[0]-l_plrs[p2].pos[0])
+                        else:
+                            near = abs(i.pos[0]-i.h_pos[0]-l_plrs[p2].pos[0])
 
-                        if abs(i.pos[0]-l_plrs[int(not l_plrs.index(i))].pos[0]) <= int(X//130):
-                            isnear = abs(i.pos[0]-l_plrs[int(not l_plrs.index(i))].pos[0]) <= int(X//130)
-                            
-                            if isnear and l_plrs[p2].action["jump"] == False:
+                        if 0 < time.time() - i.time["attack"] <= .25:
+                            i.h_pos[0] += X//80
+                            if near <= X//30 and l_plrs[p2].action["jump"] == False and i.atk_ct == 0:
                                 if l_plrs[p2].action["block"] == True:
-                                    mult = (round((round(X/6.5, 2)-abs(i.pos[0]-l_plrs[int(not l_plrs.index(i))].pos[0]))/round(X/6, 2), 2))
+                                    mult = 0.125
                                 elif l_plrs[p2].action["relax"] == True:
-                                    mult = (2+round((round(X/6.5, 2)-abs(i.pos[0]-l_plrs[int(not l_plrs.index(i))].pos[0]))/round(X/6, 2), 2))
+                                    mult = 2
                                 else:
-                                    mult = (1+round((round(X/6.5, 2)-abs(i.pos[0]-l_plrs[int(not l_plrs.index(i))].pos[0]))/round(X/6, 2), 2))
+                                    mult = 1
                                 l_plrs[p2].health -= 10*mult
-                                i.stamina -= 15.0
+                                i.stamina -= 4.0
+                                i.atk_ct += 1
                             else:
-                                i.stamina -= 7.5
+                                i.stamina -= 2
+
+                        elif .25 < time.time() - i.time["attack"] <= .5:
+                            if near <= X//30 and l_plrs[p2].action["jump"] == False and i.atk_ct == 0:
+                                if l_plrs[p2].action["block"] == True:
+                                    mult = 0.125
+                                elif l_plrs[p2].action["relax"] == True:
+                                    mult = 2
+                                else:
+                                    mult = 1
+                                l_plrs[p2].health -= 10*mult
+                                i.stamina -= 0.5
+                                i.atk_ct += 1
+                            else:
+                                i.stamina -= 0
+
+
+                        elif .5 < time.time()-i.time["attack"] < .75:
+                            i.h_pos[0] -= X//80
+                            if  abs(i.pos[0]+i.h_pos[0]-l_plrs[p2].pos[0]-X//30) <= X//30 and\
+                                abs(i.pos[0]-i.h_pos[0]-l_plrs[p2].pos[0]-X//30) <= X//30 and\
+                                l_plrs[p2].action["jump"] == False and i.atk_ct == 1:
+
+                                if l_plrs[p2].action["block"] == True:
+                                    mult = 0
+                                elif l_plrs[p2].action["relax"] == True:
+                                    mult = 1
+                                else:
+                                    mult = 0.5
+                                l_plrs[p2].health -= 10*mult
+                                i.stamina -= 0.75
+                                i.atk_ct += 1
+                            else:
+                                i.stamina -= 0.25
+
+                        elif time.time() - i.time["attack"] >= .75:
+                            i.h_pos[0] = 0
+                            i.time["attack"] = float("inf")
+                            i.action["attack"] = False
+                            i.atk_ct = 0
 
 
                 for i in l_disc:
@@ -326,7 +362,7 @@ if __name__ == "__main__":
                     
                     #disc-player
                     if i.p2.pos[0] - X//35 <= i.pos[0] <= i.p2.pos[0] + X//35 and i.p2.pos[1] - X//35 <= i.pos[1] <= i.p2.pos[1] + Y//2 - Y//8 and\
-                       i.p2.action["relax"] == False == i.p2.action["block"]:
+                        False == i.p2.action["block"]:
                         i.p2.health -= 25.0
                         l_disc.pop(l_disc.index(i))
 
@@ -364,7 +400,7 @@ if __name__ == "__main__":
                             l_plrs[0].Actn("jump")
                         elif event.key == pygame.K_s and False == l_plrs[0].action["jump"] == l_plrs[1].action["block"]:
                             l_plrs[0].Actn("relax")
-                        if event.key == pygame.K_e:
+                        if event.key == pygame.K_e and False == l_plrs[0].action["attack"]:
                             l_plrs[0].Actn("attack")
                         elif event.key == pygame.K_q:
                             l_plrs[0].Actn("l attack")
@@ -381,7 +417,7 @@ if __name__ == "__main__":
                             l_plrs[1].Actn("jump")
                         elif event.key == pygame.K_k and l_plrs[1].action["relax"] == False == l_plrs[1].action["jump"] == l_plrs[1].action["block"]:
                             l_plrs[1].Actn("relax")
-                        if event.key == pygame.K_u:
+                        if event.key == pygame.K_u and False == l_plrs[1].action["attack"]:
                             l_plrs[1].Actn("attack")
                         if event.key == pygame.K_o:
                             l_plrs[1].Actn("l attack")
@@ -424,8 +460,10 @@ if __name__ == "__main__":
     pygame.draw.rect(SCREEN, black, pygame.Rect(0, 0, X, Y))
     if l_plrs[0].wins > l_plrs[1].wins:
         prt("!!PLAYER 1 WON!!", X//2, Y//2, white)
+        prt(str(l_plrs[0].wins) + " : " + str(l_plrs[1].wins), X//2, Y//1.5, grey)
     elif l_plrs[0].wins < l_plrs[1].wins:
         prt("!!PLAYER 2 WON!!", X//2, Y//2, white)
+        prt(str(l_plrs[0].wins) + " : " + str(l_plrs[1].wins), X//2, Y//1.5, grey)
     pygame.display.flip()
     time.sleep(2.5)
 
