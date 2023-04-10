@@ -14,7 +14,6 @@ Block     |  L_Shift   |  R_Shift
 """
 
 
-
 def init(rd):
                                                                                 #Class
     if rd == 1:
